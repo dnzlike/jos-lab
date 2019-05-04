@@ -28,7 +28,6 @@ check_page_installed_pgdir() succeeded!
 SMP: CPU 0 found 1 CPU(s)
 enabled interrupts: 1 2
 [00000000] new env 00001000
-[00000000] new env 00001001
 1000: I am ''
 [00001000] user panic in <unknown> at lib/fork.c:81: fork not implemented
 TRAP frame at 0xf02d4000 from CPU 0
@@ -51,4 +50,4 @@ TRAP frame at 0xf02d4000 from CPU 0
   ss   0x----0023
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu-system-i386: terminating on signal 15 from pid 45464 (make)
+qemu-system-i386: terminating on signal 15 from pid 63325 (make)
