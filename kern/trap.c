@@ -87,6 +87,13 @@ void H_ALIGN();
 void H_MCHK();
 void H_SIMDERR();
 
+void H_TIMER();
+void H_KBD();
+void H_SERIAL();
+void H_SPURIOUS();
+void H_IDE();
+void H_ERROR();
+
 void H_SYSCALL();
 
 void
@@ -95,28 +102,35 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	SETGATE(idt[0], 1, GD_KT, H_DIVIDE, 0);
-	SETGATE(idt[1], 1, GD_KT, H_DEBUG, 0);
-	SETGATE(idt[2], 1, GD_KT, H_NMI, 0);
-	SETGATE(idt[3], 1, GD_KT, H_BRKPT, 3);
-	SETGATE(idt[4], 1, GD_KT, H_OFLOW, 3);
-	SETGATE(idt[5], 1, GD_KT, H_BOUND, 3);
-	SETGATE(idt[6], 1, GD_KT, H_ILLOP, 0);
-	SETGATE(idt[7], 1, GD_KT, H_DEVICE, 0);
-	SETGATE(idt[8], 1, GD_KT, H_DBLFLT, 0);
-	// SETGATE(idt[9], 1, GD_KT, H_COPROC, 0);
-	SETGATE(idt[10], 1, GD_KT, H_TSS, 0);
-	SETGATE(idt[11], 1, GD_KT, H_SEGNP, 0);
-	SETGATE(idt[12], 1, GD_KT, H_STACK, 0);
-	SETGATE(idt[13], 1, GD_KT, H_GPFLT, 0);
-	SETGATE(idt[14], 1, GD_KT, H_PGFLT, 0);
-	// SETGATE(idt[15], 1, GD_KT, H_RES, 0);
-	SETGATE(idt[16], 1, GD_KT, H_FPERR, 0);
-	SETGATE(idt[17], 1, GD_KT, H_ALIGN, 0);
-	SETGATE(idt[18], 1, GD_KT, H_MCHK, 0);
-	SETGATE(idt[19], 1, GD_KT, H_SIMDERR, 0);
+	SETGATE(idt[0], 0, GD_KT, H_DIVIDE, 0);
+	SETGATE(idt[1], 0, GD_KT, H_DEBUG, 0);
+	SETGATE(idt[2], 0, GD_KT, H_NMI, 0);
+	SETGATE(idt[3], 0, GD_KT, H_BRKPT, 3);
+	SETGATE(idt[4], 0, GD_KT, H_OFLOW, 3);
+	SETGATE(idt[5], 0, GD_KT, H_BOUND, 3);
+	SETGATE(idt[6], 0, GD_KT, H_ILLOP, 0);
+	SETGATE(idt[7], 0, GD_KT, H_DEVICE, 0);
+	SETGATE(idt[8], 0, GD_KT, H_DBLFLT, 0);
+	// SETGATE(idt[9], 0, GD_KT, H_COPROC, 0);
+	SETGATE(idt[10], 0, GD_KT, H_TSS, 0);
+	SETGATE(idt[11], 0, GD_KT, H_SEGNP, 0);
+	SETGATE(idt[12], 0, GD_KT, H_STACK, 0);
+	SETGATE(idt[13], 0, GD_KT, H_GPFLT, 0);
+	SETGATE(idt[14], 0, GD_KT, H_PGFLT, 0);
+	// SETGATE(idt[15], 0, GD_KT, H_RES, 0);
+	SETGATE(idt[16], 0, GD_KT, H_FPERR, 0);
+	SETGATE(idt[17], 0, GD_KT, H_ALIGN, 0);
+	SETGATE(idt[18], 0, GD_KT, H_MCHK, 0);
+	SETGATE(idt[19], 0, GD_KT, H_SIMDERR, 0);
 
-	SETGATE(idt[T_SYSCALL], 1, GD_KT, H_SYSCALL,3);
+	SETGATE(idt[IRQ_OFFSET + 0], 0, GD_KT, H_TIMER, 0);
+	SETGATE(idt[IRQ_OFFSET + 1], 0, GD_KT, H_KBD, 0);
+	SETGATE(idt[IRQ_OFFSET + 4], 0, GD_KT, H_SERIAL, 0);
+	SETGATE(idt[IRQ_OFFSET + 7], 0, GD_KT, H_SPURIOUS, 0);
+	SETGATE(idt[IRQ_OFFSET + 14], 0, GD_KT, H_IDE, 0);
+	SETGATE(idt[IRQ_OFFSET + 19], 0, GD_KT, H_ERROR, 0);
+
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, H_SYSCALL,3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -225,11 +239,11 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
-	if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
-		cprintf("Spurious interrupt on irq 7\n");
-		print_trapframe(tf);
-		return;
-	}
+	// if (tf->tf_trapno == IRQ_OFFSET + IRQ_SPURIOUS) {
+	// 	cprintf("Spurious interrupt on irq 7\n");
+	// 	print_trapframe(tf);
+	// 	return;
+	// }
 
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
@@ -254,6 +268,14 @@ trap_dispatch(struct Trapframe *tf)
 						tf->tf_regs.reg_edi,
 						tf->tf_regs.reg_esi);
 			tf->tf_regs.reg_eax = r;
+			break;
+		case IRQ_OFFSET + IRQ_TIMER:
+			lapic_eoi();
+			sched_yield();
+			break;
+		case IRQ_OFFSET + IRQ_SPURIOUS:
+			cprintf("Spurious interrupt on irq 7\n");
+			print_trapframe(tf);
 			break;
 		default: {
 			// Unexpected trap: The user process or the kernel has a bug.
