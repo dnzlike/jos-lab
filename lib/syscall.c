@@ -67,6 +67,12 @@ sys_yield(void)
 	syscall(SYS_yield, 0, 0, 0, 0, 0, 0);
 }
 
+void
+sys_exec(envid_t envid)
+{
+	syscall(SYS_exec, 1, envid, 0, 0, 0, 0);
+}
+
 int
 sys_page_alloc(envid_t envid, void *va, int perm)
 {

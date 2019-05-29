@@ -1,0 +1,55 @@
+Question:
+Do you have to do anything else to ensure that this I/O privilege 
+setting is saved and restored properly when you subsequently switch
+from one environment to another? Why?
+Answer:
+No we needn't. Because when we switch from one environment to another,
+we'll push and pop the trapframe which contains the I/O privilege
+setting, and we won't modify it during this process.
+
+Challenge: exec
+1. create a new lib file exec.c
+2. the main routine of exec.c is the same as spawn.c, the difference
+   is that after loading the program into new env, we'll exec the child
+   env, and destroy the old.
+3. so we need a new syscall to help us do the process of exec(swap the
+   information of curenv and child, then destroy child)
+
+    static void
+    sys_exec(envid_t envid)
+    {
+        int r;
+        struct Env *e;
+
+        if ((r = envid2env(envid, &e, 1)) < 0)
+            panic("sys_exec: envid2env failed: %e", r);
+
+        curenv->env_tf = e->env_tf;
+        curenv->env_break = e->env_break;
+        curenv->env_pgfault_upcall = e->env_pgfault_upcall;
+
+        // env_free needs e's env_pgdir
+        pde_t *pgdir = curenv->env_pgdir;
+        curenv->env_pgdir = e->env_pgdir;
+        e->env_pgdir = pgdir;
+        
+        lcr3(PADDR(curenv->env_pgdir));
+        
+        env_destroy(e);
+        env_run(curenv);
+    }
+
+4. dispatch the new syscall
+5. create a new user file testexec.c to test if exec is implemented
+   correctly.
+
+    void
+    umain(int argc, char **argv)
+    {
+        int r;
+        cprintf("testexec: exec /init\n");
+        if ((r = execl("/init", "init", "initarg1", "initarg2", (char*)0)) < 0)
+            panic("testexec: exec /init: %e", r);
+
+        cprintf("testexec: should never print this!\n");
+    }

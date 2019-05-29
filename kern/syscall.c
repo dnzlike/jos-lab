@@ -72,6 +72,34 @@ sys_yield(void)
 	sched_yield();
 }
 
+static void
+sys_exec(envid_t envid)
+{
+	cprintf("enter sys_exec successfully!\n");
+
+	int r;
+	struct Env *e;
+
+	if ((r = envid2env(envid, &e, 1)) < 0)
+		panic("sys_exec: envid2env failed: %e", r);
+
+	curenv->env_tf = e->env_tf;
+	curenv->env_break = e->env_break;
+	curenv->env_pgfault_upcall = e->env_pgfault_upcall;
+
+	// env_free needs e's env_pgdir
+	pde_t *pgdir = curenv->env_pgdir;
+	curenv->env_pgdir = e->env_pgdir;
+	e->env_pgdir = pgdir;
+	
+	lcr3(PADDR(curenv->env_pgdir));
+	
+	env_destroy(e);
+	// cprintf("did i alive?\n");
+	env_run(curenv);
+	// return 0;
+}
+
 // Allocate a new environment.
 // Returns envid of new environment, or < 0 on error.  Errors are:
 //	-E_NO_FREE_ENV if no free environment is available.
@@ -515,6 +543,9 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 			return sys_sbrk(a1);
 		case SYS_yield:
 			sys_yield();
+			return 0;
+		case SYS_exec:
+			sys_exec((envid_t)a1);
 			return 0;
 		case SYS_exofork:
 			return sys_exofork();
