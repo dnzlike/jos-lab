@@ -18,8 +18,11 @@ enum {
 	SYS_yield,
 	SYS_ipc_try_send,
 	SYS_ipc_recv,
-    SYS_map_kernel_page,
-    SYS_sbrk,
+	SYS_map_kernel_page,
+	SYS_sbrk,
+	SYS_time_msec,
+	SYS_net_send,
+	SYS_net_recv,
 	NSYSCALLS
 };
 
