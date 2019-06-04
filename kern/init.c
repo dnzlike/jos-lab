@@ -16,6 +16,7 @@
 #include <kern/spinlock.h>
 #include <kern/time.h>
 #include <kern/pci.h>
+#include <kern/e1000.h>
 
 static void boot_aps(void);
 
@@ -63,6 +64,9 @@ i386_init(void)
 	time_init();
 	pci_init();
 
+	// char test[100]="11111111";
+	// e1000_tx(test,5);
+
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
 	lock_kernel();
@@ -83,7 +87,8 @@ i386_init(void)
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-	ENV_CREATE(user_icode, ENV_TYPE_USER);
+	// ENV_CREATE(user_icode, ENV_TYPE_USER);
+	
 #endif // TEST*
 
 	// Should not be necessary - drains keyboard because interrupt has given up.
