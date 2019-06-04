@@ -33,9 +33,9 @@ e1000_tx_init()
 	}
 
 
-	base->TDBAL = PADDR(tx_buf);
+	base->TDBAL = PADDR(tx_descs);
 	base->TDBAH = 0;
-	base->TDLEN = N_TXDESC;
+	base->TDLEN = sizeof(tx_descs);
 	base->TDH = 0;
 	base->TDT = 0;
 	base->TCTL |= E1000_TCTL_EN;
