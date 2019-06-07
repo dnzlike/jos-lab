@@ -1,23 +1,9 @@
 #include "ns.h"
 
 #define RX_PKT_SIZE (1518)
+#define SLEEP (50)
 
 extern union Nsipc nsipcbuf;
-
-void
-sleep(int msec)
-{
-	unsigned now = sys_time_msec();
-	unsigned end = now + msec;
-
-	if ((int)now < 0 && (int)now > -MAXERROR)
-		panic("sys_time_msec: %e", (int)now);
-	if (end < now)
-		panic("sleep: wrap");
-
-	while (sys_time_msec() < end)
-		sys_yield();
-}
 
 void
 input(envid_t ns_envid)
@@ -44,6 +30,8 @@ input(envid_t ns_envid)
 		memcpy(nsipcbuf.pkt.jp_data, buf, len);
 		nsipcbuf.pkt.jp_len = len;
 		ipc_send(ns_envid, NSREQ_INPUT, &nsipcbuf, PTE_P|PTE_U|PTE_W);
-		sleep(50);
+		
+		for (int i = 0; i < SLEEP; i++)
+			sys_yield();
 	}
 }
