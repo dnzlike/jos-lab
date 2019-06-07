@@ -81,6 +81,6 @@ struct rx_desc {
 int pci_e1000_attach(struct pci_func *pcif);
 int e1000_tx_init();
 int e1000_tx(const void *buf, uint32_t len);
-int e1000_rx(void *buf, uint32_t len);
+int e1000_rx(void *buf, uint32_t *len);
 
 #endif  // SOL >= 6

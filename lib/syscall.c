@@ -148,7 +148,7 @@ sys_net_send(const void *buf, uint32_t len)
 }
 
 int
-sys_net_recv(void *buf, uint32_t len)
+sys_net_recv(void *buf, uint32_t *len)
 {
-	return (unsigned int) syscall(SYS_net_recv, 0, (uint32_t) buf, len, 0, 0, 0);
+	return (unsigned int) syscall(SYS_net_recv, 0, (uint32_t) buf, (uint32_t) len, 0, 0, 0);
 }

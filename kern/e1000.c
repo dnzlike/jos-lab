@@ -25,7 +25,7 @@ e1000_tx_init()
 
 	memset(tx_descs, 0, sizeof(tx_descs));
 	memset(tx_buf, 0, sizeof(tx_buf));
-	
+
 	for (int i = 0; i < N_TXDESC; i++) {
 		tx_descs[i].addr = PADDR(tx_buf[i]);
 		// tx_descs[i].cmd = 0;
@@ -42,6 +42,7 @@ e1000_tx_init()
 	base->TCTL |= E1000_TCTL_PSP;
 	base->TCTL |= E1000_TCTL_CT_ETHER;
 	base->TCTL |= E1000_TCTL_COLD_FULL_DUPLEX;
+	// cprintf("TCTL: %d\n", base->TCTL);
 	base->TIPG |= E1000_TIPG_DEFAULT;
 
 	return 0;
@@ -60,6 +61,28 @@ e1000_rx_init()
 
 	// Set hardward registers
 	// Look kern/e1000.h to find useful definations
+
+	memset(rx_descs, 0, sizeof(rx_descs));
+	memset(rx_buf, 0, sizeof(rx_buf));
+
+	for (int i = 0; i < N_RXDESC; i++) {
+		rx_descs[i].addr = PADDR(rx_buf[i]);
+		// rx_descs[i].status = E1000_RX_STATUS_DD;
+	}
+
+	base->RAL = QEMU_MAC_LOW;
+	base->RAH = QEMU_MAC_HIGH;
+
+	// memset(base->MTA, 0, sizeof(base->MTA));
+
+	base->RDBAL = PADDR(rx_descs);
+	base->RDBAH = 0;
+	base->RDLEN = sizeof(rx_descs);
+	base->RDH = 0;
+	base->RDT = N_RXDESC - 1;
+	base->RCTL |= E1000_RCTL_EN;
+	base->RCTL |= E1000_RCTL_BSIZE_2048;
+	base->RCTL |= E1000_RCTL_SECRC;
 
 	return 0;
 }
@@ -107,11 +130,13 @@ e1000_tx(const void *buf, uint32_t len)
 	memcpy(tx_buf[tail], buf, len);
 	base->TDT = (tail + 1) % N_TXDESC;
 
+	// cprintf("TDH: %d, TDT: %d\n", base->TDH, base->TDT);
+
 	return 0;
 }
 
 int
-e1000_rx(void *buf, uint32_t len)
+e1000_rx(void *buf, uint32_t *len)
 {
 	// Copy one received buffer to buf
 	// You could return -E_AGAIN if there is no packet
@@ -119,6 +144,25 @@ e1000_rx(void *buf, uint32_t len)
 	// the packet
 	// Do not forget to reset the decscriptor and
 	// give it back to hardware by modifying RDT
+
+	// if (!buf || len > RX_PKT_SIZE) {
+	// 	return -E_INVAL;
+	// }
+
+	static uint32_t next = 0;
+
+	// uint32_t head = base->RDH;
+	if (!(rx_descs[next].status & E1000_RX_STATUS_DD)) {
+		// cprintf("wtf?\n");
+		return -E_AGAIN;
+	}
+
+	*len = rx_descs[next].length;
+	memset(buf, 0, rx_descs[next].length);
+	memcpy(buf, rx_buf[next], rx_descs[next].length);
+
+	base->RDT = (base->RDT + 1) % N_RXDESC;
+	next = (next + 1) % N_RXDESC;
 
 	return 0;
 }

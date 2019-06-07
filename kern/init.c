@@ -64,9 +64,6 @@ i386_init(void)
 	time_init();
 	pci_init();
 
-	// char test[100]="11111111";
-	// e1000_tx(test,5);
-
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
 	lock_kernel();
