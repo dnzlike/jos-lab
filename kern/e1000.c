@@ -10,6 +10,15 @@
 
 static struct E1000 *base;
 
+int
+e1000_eerd(uint32_t addr)
+{
+	base->EERD = 0;
+	base->EERD |= addr << E1000_EERD_ADDR;
+	base->EERD |= E1000_EERD_START;
+	return (base->EERD >> E1000_EERD_DATA) & 0xFFFF;
+}
+
 struct tx_desc tx_descs[N_TXDESC];
 char tx_buf[N_TXDESC][TX_PKT_SIZE];
 
@@ -70,10 +79,13 @@ e1000_rx_init()
 		// rx_descs[i].status = E1000_RX_STATUS_DD;
 	}
 
-	base->RAL = QEMU_MAC_LOW;
-	base->RAH = QEMU_MAC_HIGH;
+	cprintf("ral: 0x%.8x\n", (e1000_eerd(1) << QEMU_MAC_SHIFT) | e1000_eerd(0));
+	cprintf("rah: 0x%.8x\n", e1000_eerd(2));
+	base->RAL = (e1000_eerd(1) << QEMU_MAC_SHIFT) | e1000_eerd(0);
+	base->RAH = e1000_eerd(2) << QEMU_MAC_SHIFT;
 
 	// memset(base->MTA, 0, sizeof(base->MTA));
+
 
 	base->RDBAL = PADDR(rx_descs);
 	base->RDBAH = 0;
@@ -151,6 +163,8 @@ e1000_rx(void *buf, uint32_t *len)
 
 	static uint32_t next = 0;
 
+	// cprintf("RDH: %d, RDT: %d, next: %d\n", base->RDH, base->RDT, next);
+
 	// uint32_t head = base->RDH;
 	if (!(rx_descs[next].status & E1000_RX_STATUS_DD)) {
 		// cprintf("wtf?\n");
@@ -160,9 +174,12 @@ e1000_rx(void *buf, uint32_t *len)
 	*len = rx_descs[next].length;
 	memset(buf, 0, rx_descs[next].length);
 	memcpy(buf, rx_buf[next], rx_descs[next].length);
+	rx_descs[next].status &= ~E1000_RX_STATUS_DD;
 
 	base->RDT = (base->RDT + 1) % N_RXDESC;
 	next = (next + 1) % N_RXDESC;
 
+	cprintf("RDH: %d, RDT: %d, next: %d\n", base->RDH, base->RDT, next);
+	// panic("stop\n");
 	return 0;
 }

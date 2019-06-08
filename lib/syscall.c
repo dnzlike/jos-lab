@@ -152,3 +152,9 @@ sys_net_recv(void *buf, uint32_t *len)
 {
 	return (unsigned int) syscall(SYS_net_recv, 0, (uint32_t) buf, (uint32_t) len, 0, 0, 0);
 }
+
+int
+sys_net_eerd(uint32_t addr)
+{
+	return (unsigned int) syscall(SYS_net_eerd, 0, (uint32_t) addr, 0, 0, 0, 0);
+}

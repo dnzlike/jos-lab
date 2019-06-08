@@ -23,6 +23,7 @@ enum {
 	SYS_time_msec,
 	SYS_net_send,
 	SYS_net_recv,
+	SYS_net_eerd,
 	NSYSCALLS
 };
 
